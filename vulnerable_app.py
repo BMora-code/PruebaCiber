@@ -30,16 +30,16 @@ def login():
 
         conn = get_db_connection()
 
-        # Inyección de SQL solo si se detecta un payload de inyección de SQL
-        if "' OR '" in password:
-            query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-            user = conn.execute(query).fetchone()
-        else:
-            query = "SELECT * FROM users WHERE username = ? AND password = ?"
-            hashed_password = hash_password(password)
-            user = conn.execute(query, (username, hashed_password)).fetchone()
+        # [CORRECCIÓN DE SEGURIDAD]
+        # Eliminada la lógica vulnerable de Inyección SQL.
+        # Siempre se utiliza la contraseña hasheada y sentencias preparadas.
+        query = "SELECT * FROM users WHERE username = ? AND password = ?"
+        hashed_password = hash_password(password)
+        
+        # Uso de sentencias preparadas (tupla) para prevenir Inyección SQL
+        user = conn.execute(query, (username, hashed_password)).fetchone()
 
-        print("Consulta SQL generada:", query)
+        print("Consulta SQL generada con sentencias preparadas") 
 
         if user:
             session['user_id'] = user['id']
@@ -63,6 +63,7 @@ def dashboard():
 
     user_id = session['user_id']
     conn = get_db_connection()
+    # Las consultas en el dashboard ya usaban sentencias preparadas (seguras)
     tasks = conn.execute(
         "SELECT * FROM tasks WHERE user_id = ?", (user_id,)).fetchall()
     conn.close()
@@ -121,4 +122,4 @@ def admin():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
